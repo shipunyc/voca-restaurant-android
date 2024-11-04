@@ -1,5 +1,7 @@
 package com.example.helloworld
 
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.RemoteException
 import android.util.Log
@@ -13,14 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.helloworld.ui.theme.HelloworldTheme
-import com.sunmi.peripheral.printer.InnerPrinterCallback
-import com.sunmi.peripheral.printer.InnerPrinterManager
-import com.sunmi.peripheral.printer.InnerResultCallback
-import com.sunmi.peripheral.printer.SunmiPrinterService
 
 class MainActivity : ComponentActivity() {
-
-    private var sunmiPrinterService: SunmiPrinterService? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,57 +31,13 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        bindPrinterService()
-    }
-
-    private fun bindPrinterService() {
-        val result =
-            InnerPrinterManager.getInstance().bindService(this, object : InnerPrinterCallback() {
-                override fun onConnected(service: SunmiPrinterService) {
-                    sunmiPrinterService = service
-                    Log.e("PrinterService", "Printer service bound successfully")
-                    printText("This is a large text for printing.")
-                }
-
-                override fun onDisconnected() {
-                    sunmiPrinterService = null
-                }
-            })
-        if (!result) {
-            Log.e("PrinterService", "Failed to bind printer service")
+        val serviceIntent = Intent(this, MyForegroundService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
         }
-    }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        sunmiPrinterService?.let {
-            InnerPrinterManager.getInstance().unBindService(this, null)
-        }
-    }
-
-    private fun printText(largeText: String) {
-        try {
-            sunmiPrinterService?.printText("$largeText\n", object :
-                InnerResultCallback() {
-                override fun onRunResult(isSuccess: Boolean) {
-                    Log.d("PrinterService", "Print result: $isSuccess")
-                }
-
-                override fun onRaiseException(code: Int, msg: String) {
-                    Log.e("PrinterService", "Print exception: $msg")
-                }
-
-                override fun onReturnString(result: String) {
-                    Log.d("PrinterService", "Return result: $result")
-                }
-
-                override fun onPrintResult(code: Int, msg: String) {
-                    Log.d("PrinterService", "Print callback: $msg")
-                }
-            })
-        } catch (e: RemoteException) {
-            e.printStackTrace()
-        }
     }
 }
 

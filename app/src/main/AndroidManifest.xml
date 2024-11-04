@@ -2,7 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- 这里添加包可见性声明 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
     <queries>
         <package android:name="woyou.aidlservice.jiuiv5" />
     </queries>
@@ -17,6 +18,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Helloworld"
         tools:targetApi="31">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -27,6 +29,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".MyForegroundService"
+            android:enabled="true"
+            android:exported="false" />
+
     </application>
 
 </manifest>
