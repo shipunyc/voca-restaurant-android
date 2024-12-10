@@ -27,7 +27,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             HelloworldTheme {
-                // Use rememberSaveable to save login state
                 var isLoggedIn by rememberSaveable { mutableStateOf(false) }
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -35,11 +34,11 @@ class MainActivity : ComponentActivity() {
                 ) {
                     if (!isLoggedIn) {
                         LoginScreen { username, password ->
-                            // Execute login logic
+                            // 执行登录逻辑
                             login(username, password) { success ->
                                 if (success) {
                                     isLoggedIn = true
-                                    // Start service and pass username and password
+                                    // 启动服务并传递用户名和密码
                                     val serviceIntent = Intent(this, MyForegroundService::class.java)
                                     serviceIntent.putExtra("username", username)
                                     serviceIntent.putExtra("password", password)
@@ -49,13 +48,22 @@ class MainActivity : ComponentActivity() {
                                         startService(serviceIntent)
                                     }
                                 } else {
-                                    // Show login failure message
+                                    // 显示登录失败
                                     Toast.makeText(this, "Login failed, please check username and password", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         }
                     } else {
-                        ReceivingScreen()
+                        // 当已登录时，显示 ReceivingScreen，并传入 onLogout 回调
+                        ReceivingScreen(
+                            onLogout = {
+                                // 执行登出逻辑
+                                isLoggedIn = false
+                                // 停止服务
+                                val serviceIntent = Intent(this, MyForegroundService::class.java)
+                                stopService(serviceIntent)
+                            }
+                        )
                     }
                 }
             }
@@ -158,11 +166,17 @@ fun LoginScreen(onLoginClick: (String, String) -> Unit) {
 }
 
 @Composable
-fun ReceivingScreen() {
+fun ReceivingScreen(onLogout: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = "Receiving...", style = MaterialTheme.typography.headlineMedium)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = "Receiving...", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(onClick = { onLogout() }) {
+                Text("Logout") // 登出按钮
+            }
+        }
     }
 }

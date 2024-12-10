@@ -26,6 +26,8 @@ class MyForegroundService : Service() {
     private var username: String? = null
     private var password: String? = null
 
+    private var printerCallback: InnerPrinterCallback? = null
+
     companion object {
         const val CHANNEL_ID = "ForegroundServiceChannel"
     }
@@ -67,9 +69,13 @@ class MyForegroundService : Service() {
         Log.d("MyForegroundService", "Service is being destroyed")
         handler.removeCallbacks(runnable)
 
-        sunmiPrinterService?.let {
-            InnerPrinterManager.getInstance().unBindService(this, null)
+        // 在解绑时使用之前绑定时使用的回调对象，而不是 null
+        if (printerCallback != null) {
+            InnerPrinterManager.getInstance().unBindService(this, printerCallback)
         }
+
+        sunmiPrinterService = null
+        printerCallback = null
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -89,19 +95,21 @@ class MyForegroundService : Service() {
     }
 
     private fun bindPrinterService() {
-        val result =
-            InnerPrinterManager.getInstance().bindService(this, object : InnerPrinterCallback() {
-                override fun onConnected(service: SunmiPrinterService) {
-                    sunmiPrinterService = service
-                    Log.e("PrinterService", "Printer service bound successfully")
-                    // Start scheduled task
-                    handler.post(runnable)
-                }
+        // 创建并保存回调对象
+        printerCallback = object : InnerPrinterCallback() {
+            override fun onConnected(service: SunmiPrinterService) {
+                sunmiPrinterService = service
+                Log.e("PrinterService", "Printer service bound successfully")
+                // Start scheduled task
+                handler.post(runnable)
+            }
 
-                override fun onDisconnected() {
-                    sunmiPrinterService = null
-                }
-            })
+            override fun onDisconnected() {
+                sunmiPrinterService = null
+            }
+        }
+
+        val result = InnerPrinterManager.getInstance().bindService(this, printerCallback)
         if (!result) {
             Log.e("PrinterService", "Failed to bind printer service")
         }
